@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthProvider } from '@/contexts/AuthContext';
 import { Montserrat, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -27,7 +28,9 @@ export default function RootLayout({
       <body
           className={`${montserrat.className} ${geistMono.className} antialiased`}
       >
-        {children}
+          <AuthProvider>
+              {children}
+          </AuthProvider>
       </body>
     </html>
   );

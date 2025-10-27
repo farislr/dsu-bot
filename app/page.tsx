@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth();
   const [yesterday, setYesterday] = useState("");
   const [today, setToday] = useState("");
   const [blockers, setBlockers] = useState("");
@@ -21,39 +21,20 @@ export default function Home() {
     today: string;
     timestamp: string;
   } | null>(null);
-
-  // Debounce timer ref
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const userInitials = user?.displayName?.charAt(0).toUpperCase() || "U"
+  const userPhoto = user?.photoURL ?? "https://gravatar.com/avatar/8d965d0787ab969198b87da7d4695fc2?s=400&d=robohash&r=x";
 
   useEffect(() => {
-    // Clear previous timer
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    // Don't fetch if email is empty or invalid
-    if (!email || !email.includes('@')) {
-      return;
-    }
-
-    // Set new timer - fetch after 300ms of no typing
-    debounceTimer.current = setTimeout(() => {
+    if (user?.email) {
       fetchPreviousWork();
-    }, 300);
-
-    // Cleanup
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, [email]);
+    }
+  }, [user]);
 
   const fetchPreviousWork = async () => {
-    if (!email) return;
+    if (!user?.email) return;
 
     try {
-      const response = await fetch(`/api/standup?email=${encodeURIComponent(email)}`);
+      const response = await fetch(`/api/standup?email=${encodeURIComponent(user.email)}`);
 
       if (response.ok) {
         const result = await response.json();
@@ -69,6 +50,8 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
     setLoading(true);
     setMessage("");
 
@@ -79,8 +62,8 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
-          email,
+          name: user.displayName || "Unknown",
+          email: user.email,
           yesterday,
           today,
           blockers,
@@ -108,14 +91,7 @@ export default function Home() {
         setBlockers("");
 
         setTimeout(async () => {
-          const refreshResponse = await fetch(`/api/standup?email=${encodeURIComponent(email)}`);
-          if (refreshResponse.ok) {
-            const refreshResult = await refreshResponse.json();
-            if (refreshResult.data) {
-              setPreviousWork(refreshResult.data);
-              setYesterday(refreshResult.data.today);
-            }
-          }
+          await fetchPreviousWork();
         }, 1000);
       }
     } catch (error) {
@@ -136,13 +112,83 @@ export default function Home() {
     });
   };
 
+  // Loading state
+  if (authLoading) {
+    return (
+        <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+    );
+  }
+
+  // Not signed in
+  if (!user) {
+    return (
+        <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center px-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <CardTitle className="text-2xl">Daily Standup</CardTitle>
+              <CardDescription>Sign in to submit your daily standup</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button
+                  onClick={signInWithGoogle}
+                  className="w-full"
+                  size="lg"
+                  variant="outline"
+              >
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+              </Button>
+              <p className="text-xs text-center text-gray-500">
+                Your company email will be used to track your standups
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+    );
+  }
+
+  // Signed in - show main form
   return (
       <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold text-gray-900">Daily Standup</h1>
-            <p className="text-gray-600">Share your progress and plan for today</p>
+          {/* Header with User Info */}
+          <div className="flex items-center justify-between">
+            <div className="text-center flex-1">
+              <h1 className="text-4xl font-bold text-gray-900">Daily Standup</h1>
+              <p className="text-gray-600">Share your progress and plan for today</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
+                <p className="text-xs text-gray-500">{user.email}</p>
+              </div>
+               <Avatar className="w-10 h-10 rounded-full">
+                        <AvatarImage src={userPhoto} alt={userInitials} />
+                        <AvatarFallback>{userInitials}</AvatarFallback>
+                      </Avatar>
+              <Button
+                  onClick={signOut}
+                  variant="outline"
+                  size="sm"
+              >
+                Sign Out
+              </Button>
+            </div>
           </div>
 
           {/* Previous Work Card */}
@@ -172,39 +218,6 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Personal Info */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    👤 Personal Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name *</Label>
-                      <Input
-                          id="name"
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="John Doe"
-                          required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address *</Label>
-                      <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="john@company.com"
-                          required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t"></div>
-
                 {/* Yesterday */}
                 <div className="space-y-2">
                   <Label htmlFor="yesterday" className="text-base font-semibold flex items-center gap-2">
@@ -318,7 +331,7 @@ export default function Home() {
           <Card className="bg-slate-50">
             <CardContent className="py-4">
               <p className="text-sm text-gray-600 text-center">
-                💡 Your email is used to track your standups and auto-fill yesterday progress
+                💡 Your email is used to track your standups and auto-fill yesterday's progress
               </p>
             </CardContent>
           </Card>

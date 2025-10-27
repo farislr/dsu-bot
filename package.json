@@ -10,12 +10,14 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@types/google-apps-script": "^2.0.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase": "^12.4.0",
     "googleapis": "^164.1.0",
     "lucide-react": "^0.546.0",
     "next": "16.0.0",
