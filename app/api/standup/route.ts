@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminAuth } from "@/lib/firebase-admin";
 
 const GOOGLE_CHAT_WEBHOOK = process.env.GOOGLE_CHAT_WEBHOOK_URL;
 const APPS_SCRIPT_API = process.env.APPS_SCRIPT_WEB_APP_URL;
@@ -263,22 +264,54 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const email = searchParams.get("email");
+    // Verify Firebase ID token
+    const authHeader = req.headers.get('Authorization');
 
-    if (!email) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
-          { message: "Email parameter required" },
-          { status: 400 }
+        { message: "Unauthorized - Missing authentication token" },
+        { status: 401 }
       );
     }
 
-    const lastEntry = await getLastEntry(email);
+    const idToken = authHeader.split('Bearer ')[1];
+
+    // Verify token with Firebase Admin
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      return NextResponse.json(
+        { message: "Unauthorized - Invalid authentication token" },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const requestedEmail = searchParams.get("email");
+
+    if (!requestedEmail) {
+      return NextResponse.json(
+        { message: "Email parameter required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify the requested email matches the authenticated user
+    if (decodedToken.email !== requestedEmail) {
+      return NextResponse.json(
+        { message: "Forbidden - Cannot access other user's data" },
+        { status: 403 }
+      );
+    }
+
+    const lastEntry = await getLastEntry(requestedEmail);
 
     if (!lastEntry) {
       return NextResponse.json(
-          { message: "No previous entries found", data: null },
-          { status: 200 }
+        { message: "No previous entries found", data: null },
+        { status: 200 }
       );
     }
 
@@ -289,11 +322,11 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("❌ Error retrieving last entry:", error);
     return NextResponse.json(
-        {
-          message: "Internal Server Error",
-          error: String(error)
-        },
-        { status: 500 }
+      {
+        message: "Internal Server Error",
+        error: String(error)
+      },
+      { status: 500 }
     );
   }
 }

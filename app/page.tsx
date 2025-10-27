@@ -16,6 +16,7 @@ export default function Home() {
   const [blockers, setBlockers] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fetchingPreviousWork, setFetchingPreviousWork] = useState(false);
   const [previousWork, setPreviousWork] = useState<{
     yesterday: string;
     today: string;
@@ -33,8 +34,16 @@ export default function Home() {
   const fetchPreviousWork = async () => {
     if (!user?.email) return;
 
+    setFetchingPreviousWork(true);
     try {
-      const response = await fetch(`/api/standup?email=${encodeURIComponent(user.email)}`);
+      // Get Firebase ID token for authentication
+      const idToken = await user.getIdToken();
+
+      const response = await fetch(`/api/standup?email=${encodeURIComponent(user.email)}`, {
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        },
+      });
 
       if (response.ok) {
         const result = await response.json();
@@ -42,9 +51,14 @@ export default function Home() {
           setPreviousWork(result.data);
           setYesterday(result.data.today);
         }
+      } else if (response.status === 401) {
+        console.error("Authentication failed - please sign in again");
+        // Optionally trigger re-authentication
       }
     } catch (error) {
       console.error("Error fetching previous work:", error);
+    } finally {
+      setFetchingPreviousWork(false);
     }
   };
 
@@ -167,32 +181,54 @@ export default function Home() {
       <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Header with User Info */}
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <h1 className="text-4xl font-bold text-gray-900">Daily Standup</h1>
-              <p className="text-gray-600">Share your progress and plan for today</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Daily Standup</h1>
+              <p className="text-sm md:text-base text-gray-600">Share your progress and plan for today</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
+            <div className="flex items-center justify-center md:justify-end gap-2 md:gap-3 flex-shrink-0">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">{user.displayName}</p>
+                <p className="text-xs text-gray-500 truncate max-w-[150px]">{user.email}</p>
               </div>
-               <Avatar className="w-10 h-10 rounded-full">
-                        <AvatarImage src={userPhoto} alt={userInitials} />
-                        <AvatarFallback>{userInitials}</AvatarFallback>
-                      </Avatar>
+              <Avatar className="w-10 h-10 rounded-full flex-shrink-0">
+                <AvatarImage src={userPhoto} alt={userInitials} />
+                <AvatarFallback>{userInitials}</AvatarFallback>
+              </Avatar>
               <Button
                   onClick={signOut}
                   variant="outline"
                   size="sm"
+                  className="flex-shrink-0"
               >
                 Sign Out
               </Button>
             </div>
           </div>
 
+          {/* Previous Work Loading State */}
+          {fetchingPreviousWork && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="animate-pulse">📋</span>
+                    Loading Previous Standup...
+                  </CardTitle>
+                  <CardDescription>Fetching your last entry</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-white rounded-lg p-4 border border-blue-100">
+                    <div className="animate-pulse space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+          )}
+
           {/* Previous Work Card */}
-          {previousWork && (
+          {!fetchingPreviousWork && previousWork && (
               <Card className="bg-blue-50 border-blue-200">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -274,7 +310,7 @@ export default function Home() {
                 {/* Submit Button */}
                 <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || fetchingPreviousWork}
                     className="w-full"
                     size="lg"
                 >

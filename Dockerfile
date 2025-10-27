@@ -1,0 +1,57 @@
+# Use Bun official image
+FROM oven/bun:1 AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lock* ./
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+
+# Build Next.js application
+RUN bun run build
+
+# Production image, copy all files and run next
+FROM base AS runner
+WORKDIR /app
+
+# Set environment to production
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built application
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Create logs directory
+RUN mkdir -p logs && chown -R nextjs:nodejs logs
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Set hostname
+ENV HOSTNAME="0.0.0.0"
+
+# Start Next.js directly (no PM2 in Docker)
+CMD ["bun", "server.js"]

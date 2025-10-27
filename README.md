@@ -4,20 +4,37 @@ A Next.js web application for submitting daily standup updates that automaticall
 
 ## Features
 
+### Core Functionality
 - 📊 **Dual Submission**: Posts standup updates to both Google Chat (as formatted cards) and Google Sheets
 - 🔄 **Auto-fill**: Automatically fills "yesterday" field from your previous "today" entry
 - 💾 **History Tracking**: Retrieves your last standup entry based on email
 - 🎯 **Thread Grouping**: Groups all daily standups in a single Google Chat thread
+
+### User Experience
 - ✨ **Modern UI**: Beautiful, responsive interface built with shadcn/ui and Tailwind CSS
-- ⚡ **Real-time Updates**: Debounced email lookup for seamless UX
+- 📱 **Responsive Design**: Mobile-first design with adaptive layouts
+- ⚡ **Real-time Feedback**: Loading states and visual feedback for all operations
+- 🔐 **Secure Authentication**: Firebase Authentication with Google Sign-In
+
+### DevOps & Deployment
+- 🐳 **Docker Ready**: Production-ready Docker configuration with health checks
+- ⚙️ **PM2 Support**: Process management for VPS/local deployments
+- 🔄 **Auto-restart**: Automatic recovery from crashes
+- 📊 **Monitoring**: Built-in health checks and logging
 
 ## Prerequisites
 
 Before setting up the application, ensure you have:
 
-- **Node.js** (v20 or higher) or **Bun** runtime
+### Required
+- **Bun** runtime (v1.0+) - [Install Bun](https://bun.sh/)
+- **Firebase Project** - For authentication ([Firebase Console](https://console.firebase.google.com/))
 - **Google Chat Webhook URL** - [Create a webhook](https://developers.google.com/chat/how-tos/webhooks)
 - **Google Apps Script Web App** - Deployed script for Google Sheets integration
+
+### Optional (for deployment)
+- **Docker** and **Docker Compose** - For containerized deployment
+- **PM2** - For local/VPS process management (`bun add -g pm2`)
 
 ## Setup Instructions
 
@@ -30,14 +47,14 @@ cd dsu-bot
 
 ### 2. Install Dependencies
 
-Using npm:
-```bash
-npm install
-```
-
-Or using Bun:
+Using Bun (recommended):
 ```bash
 bun install
+```
+
+Or using npm:
+```bash
+npm install
 ```
 
 ### 3. Configure Environment Variables
@@ -113,14 +130,14 @@ function doGet(e) {
 
 ### 4. Run the Development Server
 
-Using npm:
-```bash
-npm run dev
-```
-
-Using Bun:
+Using Bun (recommended):
 ```bash
 bun dev
+```
+
+Or using npm:
+```bash
+npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -158,27 +175,134 @@ dsu-bot/
 
 ## Available Scripts
 
-- `npm run dev` / `bun dev` - Start development server
-- `npm run build` / `bun run build` - Build for production
-- `npm start` / `bun start` - Start production server
-- `npm run lint` / `bun run lint` - Run ESLint
-- `npm test` / `bun test` - Run tests
+### Development
+- `bun dev` - Start development server
+- `bun run build` - Build for production
+- `bun start` - Start production server (standalone)
+- `bun run lint` - Run ESLint
+- `bun test` - Run tests
+
+### PM2 Process Management (Local/VPS)
+- `bun run pm2:start` - Start with PM2
+- `bun run pm2:stop` - Stop PM2 process
+- `bun run pm2:restart` - Restart PM2 process
+- `bun run pm2:logs` - View PM2 logs
+- `bun run pm2:monit` - Monitor PM2 resources
+
+### Docker Deployment
+- `bun run docker:build` - Build Docker image
+- `bun run docker:up` - Start Docker container
+- `bun run docker:down` - Stop Docker container
+- `bun run docker:logs` - View Docker logs
 
 ## Technologies Used
 
-- **[Next.js 16](https://nextjs.org/)** - React framework with App Router
+### Core Stack
+- **[Next.js 16](https://nextjs.org/)** - React framework with App Router (Standalone output mode)
 - **[React 19](https://react.dev/)** - UI library
 - **[TypeScript](https://www.typescriptlang.org/)** - Type safety
-- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS
+- **[Bun](https://bun.sh/)** - Fast JavaScript runtime and package manager
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[shadcn/ui](https://ui.shadcn.com/)** - Re-usable component library
-- **[Google Chat API](https://developers.google.com/chat)** - Chat integration
-- **[Google Apps Script](https://developers.google.com/apps-script)** - Sheets integration
+
+### Backend & Integration
+- **[Firebase Authentication](https://firebase.google.com/docs/auth)** - User authentication with Google Sign-In
+- **[Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)** - Server-side authentication verification
+- **[Google Chat API](https://developers.google.com/chat)** - Webhook integration for standup notifications
+- **[Google Apps Script](https://developers.google.com/apps-script)** - Sheets integration for data persistence
+
+### DevOps & Deployment
+- **[Docker](https://www.docker.com/)** - Containerization for production deployment
+- **[PM2](https://pm2.keymetrics.io/)** - Process manager for local/VPS deployment
+- **[Docker Compose](https://docs.docker.com/compose/)** - Multi-container orchestration
 
 ## Deployment
 
-### Deploy on Vercel
+### Production Deployment Options
 
-The easiest way to deploy:
+#### Option 1: Docker (Recommended for Production)
+
+**Recommended for:** Production deployments, containerized environments, CI/CD pipelines
+
+**Architecture:**
+- Next.js standalone server running on Bun runtime
+- Docker handles process management and health monitoring
+- Multi-stage build for optimized image size
+- Non-root user for security
+
+**Quick Start:**
+```bash
+# 1. Configure environment variables
+cp .env.example .env
+# Edit .env with your actual values
+
+# 2. Build and run with Docker Compose
+bun run docker:build
+bun run docker:up
+
+# 3. View logs
+bun run docker:logs
+
+# Access at http://localhost:3000
+```
+
+**Features:**
+- ✅ Automatic restart on failure
+- ✅ Health check monitoring every 30s
+- ✅ Persistent log volumes
+- ✅ Environment-based configuration
+- ✅ Network isolation
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md) for complete Docker deployment guide.**
+
+#### Option 2: PM2 (Local/VPS Deployment)
+
+**Recommended for:** VPS deployments, bare metal servers, local production testing
+
+**Architecture:**
+- PM2 process manager with cluster mode
+- Auto-restart on crashes (max 10 attempts)
+- Memory limit management (1GB)
+- Log rotation and monitoring
+
+**Quick Start:**
+```bash
+# 1. Install PM2 globally
+bun add -g pm2
+
+# 2. Build the application
+bun run build
+
+# 3. Start with PM2
+bun run pm2:start
+
+# 4. View logs and monitor
+bun run pm2:logs
+bun run pm2:monit
+
+# Access at http://localhost:3000
+```
+
+**Features:**
+- ✅ Cluster mode for load balancing
+- ✅ Automatic restart with delay
+- ✅ Memory-based restart (1GB limit)
+- ✅ Structured logging with timestamps
+- ✅ Process monitoring dashboard
+
+**Management Commands:**
+```bash
+pm2 status              # Check process status
+pm2 restart dsu-bot     # Restart application
+pm2 stop dsu-bot        # Stop application
+pm2 delete dsu-bot      # Remove from PM2
+```
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md) for complete PM2 deployment guide.**
+
+#### Option 3: Vercel (Serverless)
+
+The easiest way for serverless deployment:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone)
 
@@ -187,15 +311,73 @@ The easiest way to deploy:
 3. Add environment variables in Vercel dashboard
 4. Deploy
 
-### Deploy on Other Platforms
+#### Option 4: Other Platforms
 
 This app can be deployed on any platform that supports Next.js:
-- Netlify
-- Railway
-- Render
-- AWS Amplify
+- **Netlify**: Serverless deployment with build plugins
+- **Railway**: Container-based deployment with auto-scaling
+- **Render**: Docker or native builds with persistent disks
+- **AWS Amplify**: Full-stack serverless deployment
 
-Make sure to set the environment variables on your deployment platform.
+**Important:** Make sure to set all environment variables on your deployment platform.
+
+For detailed deployment instructions, monitoring, and troubleshooting, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
+
+---
+
+## Quick Reference
+
+### Development Workflow
+```bash
+# Setup
+bun install
+cp .env.example .env.local
+# Configure .env.local with Firebase credentials
+
+# Development
+bun dev                    # Start dev server at http://localhost:3000
+
+# Production Build
+bun run build              # Build Next.js application
+```
+
+### Docker Deployment (Recommended)
+```bash
+# One-time setup
+cp .env.example .env
+# Edit .env with production credentials
+
+# Deploy
+bun run docker:build       # Build Docker image
+bun run docker:up          # Start container (detached)
+bun run docker:logs        # View logs
+bun run docker:down        # Stop container
+```
+
+### PM2 Deployment (VPS/Local)
+```bash
+# One-time setup
+bun add -g pm2             # Install PM2 globally
+bun run build              # Build application
+
+# Deploy
+bun run pm2:start          # Start with PM2
+bun run pm2:logs           # View logs
+bun run pm2:monit          # Monitor resources
+bun run pm2:restart        # Restart app
+bun run pm2:stop           # Stop app
+```
+
+### Key Files
+- `next.config.ts` - Next.js configuration (standalone output enabled)
+- `ecosystem.config.js` - PM2 process configuration
+- `Dockerfile` - Docker build configuration
+- `docker-compose.yml` - Docker orchestration
+- `.env.local` / `.env` - Environment variables
+- `DEPLOYMENT.md` - Detailed deployment guide
+- `AUTHENTICATION_SETUP.md` - Firebase setup guide
+
+---
 
 ## Troubleshooting
 

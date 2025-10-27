@@ -1,0 +1,40 @@
+services:
+  dsu-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dsu-bot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Firebase Client Config
+      - NEXT_PUBLIC_FIREBASE_API_KEY=${NEXT_PUBLIC_FIREBASE_API_KEY}
+      - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+      - NEXT_PUBLIC_FIREBASE_PROJECT_ID=${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+      - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+      - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+      - NEXT_PUBLIC_FIREBASE_APP_ID=${NEXT_PUBLIC_FIREBASE_APP_ID}
+      # Firebase Admin Config
+      - NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL=${NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL}
+      - NEXT_PUBLIC_FIREBASE_PRIVATE_KEY=${NEXT_PUBLIC_FIREBASE_PRIVATE_KEY}
+      # Google Apps Script
+      - APPS_SCRIPT_WEB_APP_URL=${APPS_SCRIPT_WEB_APP_URL}
+      # Google Chat
+      - GOOGLE_CHAT_WEBHOOK_URL=${GOOGLE_CHAT_WEBHOOK_URL}
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dsu-network
+
+networks:
+  dsu-network:
+    driver: bridge
