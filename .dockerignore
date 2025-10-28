@@ -4,6 +4,8 @@ npm-debug.log
 yarn-error.log
 package-lock.json
 yarn.lock
+# Keep bun.lock for consistent dependency resolution
+# bun.lock
 
 # Build outputs
 .next
