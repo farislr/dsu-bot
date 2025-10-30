@@ -1,8 +1,7 @@
 services:
   dsu-bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/farislr/dsu-bot:latest
+    pull_policy: always
     container_name: dsu-bot
     restart: unless-stopped
     ports:
