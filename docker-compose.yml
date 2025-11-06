@@ -1,6 +1,6 @@
 services:
   dsu-bot:
-    image: ghcr.io/farislr/dsu-bot:latest
+    image: ghcr.io/RFrandha/dsu-bot:latest
     pull_policy: always
     container_name: dsu-bot
     restart: unless-stopped
