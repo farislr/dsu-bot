@@ -25,12 +25,17 @@ COPY . .
 RUN bun run build
 
 # Production image, copy all files and run next
-FROM base AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 # Set environment to production
 ENV NODE_ENV=production
 ENV PORT=3000
+
+# Install runtime dependencies required by healthcheck and native modules
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
@@ -54,4 +59,4 @@ EXPOSE 3000
 ENV HOSTNAME="0.0.0.0"
 
 # Start Next.js directly (no PM2 in Docker)
-CMD ["bun", "server.js"]
+CMD ["node", "server.js"]
